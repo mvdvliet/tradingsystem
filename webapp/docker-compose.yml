@@ -37,21 +37,20 @@ services:
         interval: 5s
         timeout: 5s
         retries: 10
-
-    pgadmin:
-      image: dpage/pgadmin4
-      container_name: pgadmin
-      restart: unless-stopped
-      network_mode: "host"
-      environment:
-        - PGADMIN_DEFAULT_EMAIL=
-        - PGADMIN_DEFAULT_PASSWORD=
-      ports:
-        - 5433:5433
-      volumes:
-        - pgadmin_storage:/var/lib/pgadmin
-      depends_on:
-        - postgres
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin
+    restart: unless-stopped
+    network_mode: "host"
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=
+      - PGADMIN_DEFAULT_PASSWORD=
+    ports:
+      - 5433:5433
+    volumes:
+      - pgadmin_storage:/var/lib/pgadmin
+    depends_on:
+      - postgres
 
 volumes:
   logs:
