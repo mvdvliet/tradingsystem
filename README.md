@@ -1,6 +1,6 @@
 # Trading System
 
-*Unable to render image*
+![Trading System Dashboard](webapp.png)
 
 ## Overview
 
@@ -77,23 +77,17 @@ The IBKR Gateway is containerized using Docker for easy deployment and managemen
 
 ### Directory Structure
 
-javascript
-
-`ibgw/
+```
+ibgw/
 ├── conf.yaml         # Configuration for the IBKR Gateway
 ├── docker-compose.yaml  # Docker Compose configuration
 ├── Dockerfile        # Docker build instructions
-└── start.sh          # Gateway startup script`
+└── start.sh          # Gateway startup script
+```
 
 ### Configuration
 
-The
-
-```
-conf.yaml
-```
-
-file contains the configuration for the IBKR Gateway, including:
+The conf.yaml file contains the configuration for the IBKR Gateway, including:
 
 - API endpoint settings
 - SSL configuration
@@ -104,10 +98,10 @@ file contains the configuration for the IBKR Gateway, including:
 
 1. **Build and start the containers**:
     
-    bash
-    
-    `cd ibgw
-    docker-compose up -d`
+    ```
+    cd ibgw
+    docker-compose up -d
+    ```
     
 2. **Access the Firefox container** to complete IBKR authentication:
     - Open your browser and navigate to `http://localhost:3000`
@@ -141,12 +135,12 @@ The web application is the main interface for the trading system, providing acce
 
 ### Directory Structure
 
-javascript
-
-`webapp/
+```
+webapp/
 ├── docker-compose.yml  # Docker Compose configuration for webapp and database
 ├── Dockerfile          # Docker build instructions for the webapp
-└── start.sh            # Startup script for the Flask application`
+└── start.sh            # Startup script for the Flask application
+```
 
 ### Configuration
 
@@ -154,9 +148,8 @@ Before starting the web application, you need to configure the environment varia
 
 1. **Create an environment file**: Create a `.env` file in the webapp directory with the following variables:
     
-    javascript
-    
-    `# Database Configuration
+    ```
+    # Database Configuration
     POSTGRES_USER=your_postgres_user
     POSTGRES_PASSWORD=your_postgres_password
     POSTGRES_DB=trading_db
@@ -180,23 +173,24 @@ Before starting the web application, you need to configure the environment varia
     SMTP_PORT=587
     SMTP_USERNAME=your_email@example.com
     SMTP_PASSWORD=your_email_password
-    NOTIFICATION_EMAIL=recipient@example.com`
+    NOTIFICATION_EMAIL=recipient@example.com
+    ```
     
 
 ### Starting the Web Application
 
 1. **Build and start the containers**:
     
-    bash
-    
-    `cd webapp
-    docker-compose up -d`
+    ```
+    cd webapp
+    docker-compose up -d
+    ```
     
 2. **Verify the services are running**:You should see three containers running:
     
-    bash
-    
-    `docker ps`
+    ```
+    docker ps
+    ```
     
     - `webapp`: The Flask web application (port 5056)
     - `postgres`: PostgreSQL database (port 5432)
@@ -231,18 +225,18 @@ To start the complete trading system:
 
 1. Start the IBKR Gateway:
     
-    bash
-    
-    `cd ibgw
-    docker-compose up -d`
+    ```
+    cd ibgw
+    docker-compose up -d
+    ```
     
 2. Authenticate with IBKR through the Firefox container
 3. Start the Web Application:
     
-    bash
-    
-    `cd webapp
-    docker-compose up -d`
+    ```
+    cd webapp
+    docker-compose up -d
+    ```
     
 4. Access the web application at `http://localhost:5056`
 
@@ -276,3 +270,8 @@ The system is built using a Flask backend with SQLAlchemy ORM for database opera
 - Check the database logs: `docker logs postgres`
 - Use PgAdmin to verify the database structure and data
 - Ensure the database credentials are correctly configured in the `.env` file
+
+## Disclaimer
+
+This system is based on the work from Part Time Larry.
+https://github.com/hackingthemarkets/interactive-brokers-web-api
