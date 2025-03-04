@@ -1,0 +1,91 @@
+{% extends "layout.html" %}
+
+{% block content %}
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+    {% for category, message in messages %}
+    <div class="alert alert-{{ category }}">{{ message }}</div>
+    {% endfor %}
+{% endif %}
+{% endwith %}
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+        <h6 class="m-0 font-weight-bold text-primary">
+            <i class="fas fa-exchange-alt"></i> Trade History
+        </h6>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover" id="tradesTable" width="100%" cellspacing="0">
+                <thead class="thead-dark">
+                    <tr>
+                        <th>Trade Time</th>
+                        <th>Exchange</th>
+                        <th>Symbol</th>
+                        <th>Side</th>
+                        <th>Size</th>
+                        <th>Price</th>
+                        <th>Commission</th>
+                        <th>Net Amount</th>
+                        <th>Order Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for trade in trades %}
+                    <tr class="{% if trade.side == 'BOT' %}table-success{% elif trade.side == 'SLD' %}table-danger{% endif %}">
+                        <td>{{ trade.trade_time }}</td>
+                        <td><span class="badge bg-secondary">{{ trade.exchange }}</span></td>
+                        <td>
+                            <strong>
+                                <a href="/contract/{{ trade.conid | default('') }}/3m/1h">{{ trade.contract_description_1 }}</a>
+                            </strong>
+                        </td>
+                        <td>
+                            <span class="badge {% if trade.side == 'BOT' %}bg-success{% elif trade.side == 'SLD' %}bg-danger{% else %}bg-secondary{% endif %}">
+                                {{ trade.side }}
+                            </span>
+                        </td>
+                        <td>{{ "{:,.0f}".format(trade.size) }}</td>
+                        <td>{{ trade.price }}</td>
+                        <td>
+                            <span class="text-danger">{{ trade.commission }}</span>
+                        </td>
+                        <td>
+                            <strong class="{% if trade.net_amount >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                {{ "{:,.2f}".format(trade.net_amount) }}
+                            </strong>
+                        </td>
+                        <td>{{ trade.order_description }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="9" class="text-center">
+                            <div class="alert alert-info m-0">
+                                <i class="fas fa-info-circle"></i> No previous trades found
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Add DataTables for sorting and filtering -->
+<script>
+    $(document).ready(function() {
+        $('#tradesTable').DataTable({
+            "order": [[ 0, "desc" ]],  // Sort by trade time column descending
+            "pageLength": 25,
+            "language": {
+                "emptyTable": "No trades found"
+            },
+            "responsive": true
+        });
+    });
+</script>
+
+{% endblock %}

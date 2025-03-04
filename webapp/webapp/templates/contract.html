@@ -1,0 +1,354 @@
+{% extends "layout.html" %}
+
+{% block content %}
+
+<!-- Page Loader -->
+<div id="page-loader">
+    <div class="loader-content">
+        <div class="loader-spinner"></div>
+        <div class="loader-text">Loading data, please wait...</div>
+    </div>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+    {% for category, message in messages %}
+    <div class="alert alert-{{ category }}">{{ message }}</div>
+    {% endfor %}
+{% endif %}
+{% endwith %}
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+        <h6 class="m-0 font-weight-bold text-primary">
+            <i class="fas fa-chart-line"></i> {{ contract.company_name }}
+        </h6>
+    </div>
+    <div class="card-body">
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <p><strong>Category:</strong> {{ contract.category }}</p>
+            </div>
+            <div class="col-md-4">
+                <p><strong>Industry:</strong> {{ contract.industry }}</p>
+            </div>
+            <div class="col-md-4">
+                <p><strong>Contract ID:</strong> <a href="/backtest/{{ contract['con_id'] }}/3m/1h">{{ contract.con_id }}</a></p>
+            </div>
+        </div>
+        <p class="text-muted">
+            <i class="fas fa-clock"></i> Last Updated: {{ market_data['_updated'] | format_datetime('Asia/Hong_Kong')}}
+        </p>
+
+        <!-- Market Data -->
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-chart-bar"></i> Market Data
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover" width="100%" cellspacing="0">
+                        <thead class="thead-dark">
+                            <tr>
+                                <th>%Change</th>
+                                <th>Change</th>
+                                <th>Last</th>
+                                <th>Bid</th>
+                                <th>Ask</th>
+                                <th>Open</th>
+                                <th>High</th>
+                                <th>Low</th>
+                                <th>Volume</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>
+                                    {% set change_percent = market_data.get('83', 'N/A') %}
+                                    {% if change_percent != 'N/A' %}
+                                        <span class="badge {% if change_percent|float >= 0 %}bg-success{% else %}bg-danger{% endif %} p-2">
+                                            {{ change_percent }}%
+                                        </span>
+                                    {% else %}
+                                        <span>N/A</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ market_data.get('82', 'N/A') }}</td>
+                                <td><strong>{{ market_data.get('31', 'N/A') }}</strong></td>
+                                <td>{{ market_data.get('84', 'N/A') }}</td>
+                                <td>{{ market_data.get('86', 'N/A') }}</td>
+                                <td>{{ market_data.get('7295', 'N/A') }}</td>
+                                <td>{{ market_data.get('70', 'N/A') }}</td>
+                                <td>{{ market_data.get('71', 'N/A') }}</td>
+                                <td>{{ market_data.get('87', 'N/A') }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Position -->
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-wallet"></i> Position
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover" width="100%" cellspacing="0">
+                        <thead class="thead-dark">
+                            <tr>
+                                <th>%PNL</th>
+                                <th>PNL</th>
+                                <th>Position</th>
+                                <th>Avg Price</th>
+                                <th>Market Value</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>
+                                    {% set pnl_percent = market_data.get('80', 'N/A') %}
+                                    {% if pnl_percent != 'N/A' %}
+                                        {% set pnl_float = pnl_percent|replace('%', '')|float %}
+                                        <span class="{% if pnl_float >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                            <strong>{{ pnl_float }}%</strong>
+                                        </span>
+                                    {% else %}
+                                        <span>N/A</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% set pnl = market_data.get('75', 'N/A') %}
+                                    {% if pnl != 'N/A' %}
+                                        <span class="{% if pnl|float >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                            <strong>{{ pnl }}</strong>
+                                        </span>
+                                    {% else %}
+                                        <span>N/A</span>
+                                    {% endif %}
+                                </td>
+                                <td><strong>{{ market_data.get('76', 'N/A') }}</strong></td>
+                                <td>{{ market_data.get('74', 'N/A') }}</td>
+                                <td>{{ market_data.get('73', 'N/A') }}</td>
+                                <td class="text-center">
+                                    {% if market_data.get('76', 'N/A') != 'N/A' and market_data.get('76', 'N/A') != '0' %}
+                                        <form method="POST" action="{{ url_for('contract.close_position', contract_id=contract.con_id, period=request.view_args.period, bar=request.view_args.bar) }}">
+                                            <input type="hidden" name="close_position" value="true">
+                                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to close this position?')">
+                                                <i class="fas fa-times"></i> Close Position
+                                            </button>
+                                        </form>
+                                    {% else %}
+                                        <button class="btn btn-outline-secondary btn-sm" disabled>
+                                            <i class="fas fa-ban"></i> No Position
+                                        </button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chart -->
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-chart-area"></i> Price Chart
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    {{ graph_html|safe }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Order Entry Form -->
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-shopping-cart"></i> Order Entry
+                </h6>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="row align-items-end">
+                        <div class="col-md-3 mb-3">
+                            <label for="side" class="form-label">Side</label>
+                            <select name="side" id="side" class="form-select form-control">
+                                <option value="BUY">Buy</option>
+                                <option value="SELL">Sell</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="quantity" class="form-label">Quantity</label>
+                            <input name="quantity" id="quantity" type="text" class="form-control" />
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="price" class="form-label">Price</label>
+                            <input name="price" id="price" type="text" class="form-control" />
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-paper-plane"></i> Place Limit Order
+                            </button>
+                        </div>
+                    </div>
+                    <input name="contract_id" type="hidden" value="{{ contract.con_id }}" />
+                </form>
+            </div>
+        </div>
+
+        <!-- Additional Tools -->
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">
+                            <i class="fas fa-robot"></i> Backtest Strategy
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <form action="{{ url_for('backtest.run_backtest', contract_id=contract.con_id, period='3m', bar='1h') }}" method="POST">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="short_window" class="form-label">Short Window</label>
+                                    <input type="number" class="form-control" id="short_window" name="short_window" value="5" min="1" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="long_window" class="form-label">Long Window</label>
+                                    <input type="number" class="form-control" id="long_window" name="long_window" value="20" min="1" required>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="period" class="form-label">Period</label>
+                                    <select class="form-control" id="period" name="period">
+                                        <option value="1d">1 Day</option>
+                                        <option value="1w">1 Week</option>
+                                        <option value="1m">1 Month</option>
+                                        <option value="3m" selected>3 Months</option>
+                                        <option value="6m">6 Months</option>
+                                        <option value="1y">1 Year</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="bar" class="form-label">Bar Size</label>
+                                    <select class="form-control" id="bar" name="bar">
+                                        <option value="1min">1 Minute</option>
+                                        <option value="5min">5 Minutes</option>
+                                        <option value="15min">15 Minutes</option>
+                                        <option value="30min">30 Minutes</option>
+                                        <option value="1h" selected>1 Hour</option>
+                                        <option value="1d">1 Day</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="initial_investment" class="form-label">Initial Investment</label>
+                                <input type="number" class="form-control" id="initial_investment" name="initial_investment" value="10000" min="1" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-play"></i> Run Backtest
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">
+                            <i class="fas fa-globe"></i> Trading Universe
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <p>Add this stock to your trading universe to include it in automated strategies.</p>
+                        <form action="{{ url_for('trading.trading_universe') }}" method="POST">
+                            <input type="hidden" name="symbol" value="{{ contract.symbol }}">
+                            <input type="hidden" name="conid" value="{{ contract.con_id }}">
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-plus-circle"></i> Add to Universe
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Technical Chart -->
+        <div class="card shadow">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-chart-line"></i> Technical Chart
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="text-center">
+                    <img src="https://charts2-node.finviz.com/chart.ashx?cs=l&t={{ contract.symbol }}&tf=d&s=linear&ct=candle_stick&tm=d&o[0][ot]=sma&o[0][op]=50&o[0][oc]=FF8F33C6&o[1][ot]=sma&o[1][op]=200&o[1][oc]=DCB3326D&o[2][ot]=sma&o[2][op]=20&o[2][oc]=DC32B363&o[3][ot]=patterns&o[3][op]=&o[3][oc]=000" class="img-fluid" alt="{{ contract.symbol }} Technical Chart" />
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Page Loader Script -->
+<script>
+    // Show loader when page starts loading
+    document.getElementById('page-loader').style.display = 'flex';
+    
+    // Hide loader when page is fully loaded
+    window.addEventListener('load', function() {
+        // Add a small delay to ensure all charts are rendered
+        setTimeout(function() {
+            const loader = document.getElementById('page-loader');
+            loader.style.opacity = '0';
+            setTimeout(function() {
+                loader.style.display = 'none';
+            }, 300);
+        }, 500);
+    });
+    
+    // Also hide loader if it's been showing for too long (fallback)
+    setTimeout(function() {
+        const loader = document.getElementById('page-loader');
+        if (loader.style.display !== 'none') {
+            loader.style.opacity = '0';
+            setTimeout(function() {
+                loader.style.display = 'none';
+            }, 300);
+        }
+    }, 10000); // 10 seconds timeout
+</script>
+
+{% endblock %}
+
+{#
+# 31,70,71,73,74,75,78,79,80,82,83,84,86,87,7289,7295,7296"
+# 31 = Last Price
+# 70 = High
+# 71 = Low
+# 73 = Market Value
+# 74 = Avg Price
+# 75 = Unrealized PNL
+# 76 = Position 
+# 78 = Daily PNL
+# 79 = Realized PNL
+# 80 = Unrealized PNL %
+# 82 = Change
+# 83 = Change %
+# 84 = Bid Price
+# 86 = Ask Price
+# 87 = Volume
+# 7289 = Market Cap
+# 7295 = Open
+# 7296 = Close
+#}

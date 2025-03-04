@@ -1,0 +1,33 @@
+<!-- templates/auth_error.html -->
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h4>Authentication Error</h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <p>Your session with Interactive Brokers is not authenticated or has expired.</p>
+                        <p>Please follow these steps:</p>
+                        <ol>
+                            <li>Make sure you are logged in to IBKR Client Portal at <a href="https://localhost:5055" target="_blank">https://localhost:5055</a></li>
+                            <li>Ensure your IBKR Client Portal API is running</li>
+                            <li>Click the button below to check your authentication status</li>
+                        </ol>
+                    </div>
+                    
+                    <div class="text-center mt-4">
+                        <a href="{{ url_for('auth.check_auth') }}" class="btn btn-primary btn-lg">
+                            Check Authentication Status
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

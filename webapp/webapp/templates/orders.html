@@ -1,0 +1,113 @@
+{% extends "layout.html" %}
+
+{% block content %}
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+    {% for category, message in messages %}
+    <div class="alert alert-{{ category }}">{{ message }}</div>
+    {% endfor %}
+{% endif %}
+{% endwith %}
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+        <h6 class="m-0 font-weight-bold text-primary">
+            <i class="fas fa-shopping-cart"></i> Active Orders
+        </h6>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover" id="ordersTable" width="100%" cellspacing="0">
+                <thead class="thead-dark">
+                    <tr>
+                        <th>Time</th>
+                        <th>Order ID</th>
+                        <th>Ticker</th>
+                        <th>Order Description</th>
+                        <th>Status</th>
+                        <th>Reason</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in orders %}
+                    <tr class="{% if order.status == 'Filled' %}table-success{% elif order.status == 'Cancelled' %}table-secondary{% elif order.status == 'Rejected' %}table-danger{% endif %}">
+                        <td>
+                            {{ order.lastExecutionTime_r | format_datetime('Asia/Hong_Kong') }}
+                        </td>
+                        <td>
+                            <span class="text-muted">{{ order.orderId }}</span>
+                        </td>
+                        <td>
+                            <strong>
+                                <a href="/contract/{{ order['conid'] }}/3m/1h">{{ order['ticker'] }}</a>
+                            </strong>
+                        </td>
+                        <td>
+                            {{ order.orderDesc }}
+                        </td>
+                        <td>
+                            <span class="badge 
+                                {% if order.status == 'Filled' %}badge-success
+                                {% elif order.status == 'Cancelled' %}badge-secondary
+                                {% elif order.status == 'Rejected' %}badge-danger
+                                {% elif order.status == 'PreSubmitted' %}badge-info
+                                {% elif order.status == 'Submitted' %}badge-primary
+                                {% else %}badge-warning{% endif %}">
+                                {{ order.status }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if order.order_cancellation_by_system_reason %}
+                                <span class="text-danger">{{ order.order_cancellation_by_system_reason }}</span>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if order.status in ['PreSubmitted', 'Submitted', 'PendingSubmit', 'PendingCancel'] %}
+                                <form method="POST" action="{{ url_for('orders.cancel_order', order_id=order.orderId) }}" style="display: inline;">
+                                    <input type="hidden" name="cancel_order" value="true">
+                                    <button type="submit" class="btn btn-danger btn-sm" 
+                                            onclick="return confirm('Are you sure you want to cancel this order?')">
+                                        <i class="fas fa-times"></i> Cancel
+                                    </button>
+                                </form>
+                            {% else %}
+                                <button class="btn btn-outline-secondary btn-sm" disabled>
+                                    <i class="fas fa-ban"></i> Cannot Cancel
+                                </button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center">
+                            <div class="alert alert-info m-0">
+                                <i class="fas fa-info-circle"></i> No active orders found
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Add DataTables for sorting and filtering -->
+<script>
+    $(document).ready(function() {
+        $('#ordersTable').DataTable({
+            "order": [[ 0, "desc" ]],  // Sort by time column descending
+            "pageLength": 25,
+            "language": {
+                "emptyTable": "No orders found"
+            },
+            "responsive": true
+        });
+    });
+</script>
+
+{% endblock %}

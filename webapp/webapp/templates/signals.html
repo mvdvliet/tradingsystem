@@ -1,0 +1,213 @@
+{% extends "layout.html" %}
+
+{% block title %}Trading Signals Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card shadow mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-chart-line me-2"></i> Trading Signals Dashboard
+                    </h5>
+                    <div>
+                        <form class="d-inline-block" method="get">
+                            <div class="input-group">
+                                <select class="form-select" name="days" onchange="this.form.submit()">
+                                    <option value="1" {% if days == 1 %}selected{% endif %}>Last 24 hours</option>
+                                    <option value="7" {% if days == 7 %}selected{% endif %}>Last 7 days</option>
+                                    <option value="30" {% if days == 30 %}selected{% endif %}>Last 30 days</option>
+                                    <option value="90" {% if days == 90 %}selected{% endif %}>Last 90 days</option>
+                                    <option value="0" {% if days == 0 %}selected{% endif %}>All time</option>
+                                </select>
+                                <select class="form-select" name="type" onchange="this.form.submit()">
+                                    <option value="all" {% if signal_type == 'all' %}selected{% endif %}>All signals</option>
+                                    <option value="buy" {% if signal_type == 'buy' %}selected{% endif %}>Buy signals</option>
+                                    <option value="sell" {% if signal_type == 'sell' %}selected{% endif %}>Sell signals</option>
+                                </select>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="card bg-primary text-white mb-4">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <div class="text-xs text-white-50">TOTAL SIGNALS</div>
+                                            <div class="font-weight-bold h3">{{ stats.total }}</div>
+                                        </div>
+                                        <i class="fas fa-signal fa-2x text-white-50"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-success text-white mb-4">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <div class="text-xs text-white-50">BUY SIGNALS</div>
+                                            <div class="font-weight-bold h3">{{ stats.buy }}</div>
+                                        </div>
+                                        <i class="fas fa-arrow-up fa-2x text-white-50"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-danger text-white mb-4">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <div class="text-xs text-white-50">SELL SIGNALS</div>
+                                            <div class="font-weight-bold h3">{{ stats.sell }}</div>
+                                        </div>
+                                        <i class="fas fa-arrow-down fa-2x text-white-50"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-info text-white mb-4">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <div class="text-xs text-white-50">ACTED UPON</div>
+                                            <div class="font-weight-bold h3">{{ stats.acted_upon }}</div>
+                                        </div>
+                                        <i class="fas fa-check-circle fa-2x text-white-50"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="card shadow mb-4">
+                                <div class="card-header py-3">
+                                    <h6 class="m-0 font-weight-bold text-primary">
+                                        <i class="fas fa-list me-2"></i> Recent Signals
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered table-hover" id="signalsTable" width="100%" cellspacing="0">
+                                            <thead class="thead-dark">
+                                                <tr>
+                                                    <th>Symbol</th>
+                                                    <th>Type</th>
+                                                    <th>Mode</th>
+                                                    <th>Strength</th>
+                                                    <th>Detection Time</th>
+                                                    <th>Price</th>
+                                                    <th>Acted Upon</th>
+                                                    <th>Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for signal in signals %}
+                                                <tr>
+                                                    <td>{{ signal.symbol }}</td>
+                                                    <td>
+                                                        {% if signal.signal_type == 'BUY' %}
+                                                            <span class="badge bg-success">BUY</span>
+                                                        {% else %}
+                                                            <span class="badge bg-danger">SELL</span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>
+                                                        {% set symbol_obj = universe_dict.get(signal.symbol) %}
+                                                        {% if symbol_obj and symbol_obj.trading_mode == 'trading' %}
+                                                            <span class="badge bg-primary">Trading</span>
+                                                        {% else %}
+                                                            <span class="badge bg-info">Simulation</span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>{{ "%.2f"|format(signal.signal_strength) }}%</td>
+                                                    <td>{{ signal.detection_time.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                                                    <td>${{ "%.2f"|format(signal.current_price) }}</td>
+                                                    <td>
+                                                        {% if signal.acted_upon %}
+                                                            <span class="badge bg-success"><i class="fas fa-check"></i> Yes</span>
+                                                        {% else %}
+                                                            <span class="badge bg-secondary"><i class="fas fa-times"></i> No</span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>
+                                                        <a href="{{ url_for('signals.signal_detail', signal_id=signal.id) }}" class="btn btn-sm btn-primary">
+                                                            <i class="fas fa-search"></i> Details
+                                                        </a>
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <div class="card shadow mb-4">
+                                <div class="card-header py-3">
+                                    <h6 class="m-0 font-weight-bold text-primary">
+                                        <i class="fas fa-chart-pie me-2"></i> Signals by Symbol
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered table-hover" id="symbolsTable" width="100%" cellspacing="0">
+                                            <thead class="thead-dark">
+                                                <tr>
+                                                    <th>Symbol</th>
+                                                    <th>Total</th>
+                                                    <th>Buy</th>
+                                                    <th>Sell</th>
+                                                    <th>Acted</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for symbol, data in signals_by_symbol.items() %}
+                                                <tr>
+                                                    <td>{{ symbol }}</td>
+                                                    <td>{{ data.total }}</td>
+                                                    <td>{{ data.buy }}</td>
+                                                    <td>{{ data.sell }}</td>
+                                                    <td>{{ data.acted_upon }}</td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Initialize DataTables -->
+<script>
+    $(document).ready(function() {
+        $('#signalsTable').DataTable({
+            "pageLength": 10,
+            "order": [[ 3, "desc" ]],  // Sort by detection time descending
+            "responsive": true
+        });
+        
+        $('#symbolsTable').DataTable({
+            "pageLength": 10,
+            "order": [[ 1, "desc" ]],  // Sort by total signals descending
+            "responsive": true
+        });
+    });
+</script>
+{% endblock %}

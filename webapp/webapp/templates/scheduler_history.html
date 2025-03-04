@@ -1,0 +1,148 @@
+{% extends "layout.html" %}
+
+{% block content %}
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+    {% for category, message in messages %}
+    <div class="alert alert-{{ category }}">{{ message }}</div>
+    {% endfor %}
+{% endif %}
+{% endwith %}
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+        <h6 class="m-0 font-weight-bold text-primary">
+            <i class="fas fa-history"></i> Job Execution History
+        </h6>
+        <a href="{{ url_for('scheduler.scheduler_dashboard') }}" class="btn btn-primary btn-sm">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+    </div>
+    <div class="card-body">
+        <!-- Job Statistics -->
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-chart-bar"></i> Job Statistics
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover" id="jobStatsTable" width="100%" cellspacing="0">
+                        <thead class="thead-dark">
+                            <tr>
+                                <th>Job ID</th>
+                                <th>Total Executions</th>
+                                <th>Success</th>
+                                <th>Failed</th>
+                                <th>Running</th>
+                                <th>Avg. Time (s)</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for job_id, stats in job_stats.items() %}
+                            <tr>
+                                <td><strong>{{ job_id }}</strong></td>
+                                <td>{{ stats.total }}</td>
+                                <td>
+                                    <span class="badge bg-success">{{ stats.success }}</span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-danger">{{ stats.failed }}</span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-warning">{{ stats.running }}</span>
+                                </td>
+                                <td>{{ "%.2f"|format(stats.avg_time) }}</td>
+                                <td class="text-center">
+                                    <a href="{{ url_for('scheduler.job_detail_history', job_id=job_id) }}" class="btn btn-info btn-sm">
+                                        <i class="fas fa-search"></i> Details
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Recent Job Executions -->
+        <div class="card shadow">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-list-alt"></i> Recent Job Executions
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover" id="executionsTable" width="100%" cellspacing="0">
+                        <thead class="thead-dark">
+                            <tr>
+                                <th>Job ID</th>
+                                <th>Start Time</th>
+                                <th>End Time</th>
+                                <th>Status</th>
+                                <th>Execution Time (s)</th>
+                                <th>Error Message</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for execution in executions %}
+                            <tr>
+                                <td><strong>{{ execution.job_id }}</strong></td>
+                                <td>{{ execution.start_time }}</td>
+                                <td>{{ execution.end_time or 'Running...' }}</td>
+                                <td>
+                                    {% if execution.status == 'success' %}
+                                        <span class="badge bg-success">Success</span>
+                                    {% elif execution.status == 'failed' %}
+                                        <span class="badge bg-danger">Failed</span>
+                                    {% else %}
+                                        <span class="badge bg-warning">Running</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ "%.2f"|format(execution.execution_time) if execution.execution_time else 'N/A' }}</td>
+                                <td>
+                                    {% if execution.error_message %}
+                                        <span class="text-danger">{{ execution.error_message }}</span>
+                                    {% else %}
+                                        <span class="text-muted">None</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add DataTables for sorting and filtering -->
+<script>
+    $(document).ready(function() {
+        $('#jobStatsTable').DataTable({
+            "pageLength": 10,
+            "language": {
+                "emptyTable": "No job statistics found"
+            },
+            "responsive": true,
+            "order": [[ 1, "desc" ]]  // Sort by total executions column descending
+        });
+        
+        $('#executionsTable').DataTable({
+            "pageLength": 25,
+            "language": {
+                "emptyTable": "No executions found"
+            },
+            "responsive": true,
+            "order": [[ 1, "desc" ]]  // Sort by start time column descending
+        });
+    });
+</script>
+
+{% endblock %}

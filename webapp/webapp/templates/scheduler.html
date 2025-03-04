@@ -1,0 +1,528 @@
+{% extends "layout.html" %}
+
+{% block content %}
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+    {% for category, message in messages %}
+    <div class="alert alert-{{ category }}">{{ message }}</div>
+    {% endfor %}
+{% endif %}
+{% endwith %}
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+        <h6 class="m-0 font-weight-bold text-primary">
+            <i class="fas fa-calendar-alt"></i> Scheduler Dashboard
+        </h6>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <!-- System Status Card -->
+            <div class="col-md-6">
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                        <h6 class="m-0 font-weight-bold text-primary">
+                            <i class="fas fa-server"></i> System Status
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <strong><i class="fas fa-cogs"></i> Scheduler Running:</strong> 
+                            <span class="badge {% if scheduler_running %}bg-success{% else %}bg-danger{% endif %} p-2">
+                                {{ 'Yes' if scheduler_running else 'No' }}
+                            </span>
+                            
+                            <div class="mt-2">
+                                <button id="start-scheduler" class="btn btn-success btn-sm" {% if scheduler_running %}disabled{% endif %}>
+                                    <i class="fas fa-play"></i> Start Scheduler
+                                </button>
+                                <button id="stop-scheduler" class="btn btn-danger btn-sm" {% if not scheduler_running %}disabled{% endif %}>
+                                    <i class="fas fa-stop"></i> Stop Scheduler
+                                </button>
+                                <!-- Add the Complete Reset button here -->
+                                <button id="complete-reset-scheduler" class="btn btn-warning btn-sm">
+                                    <i class="fas fa-sync-alt"></i> Complete Reset
+                                </button>
+                            </div>
+                        </div>
+                        <div>
+                            <strong><i class="fas fa-plug"></i> IBKR Connected:</strong> 
+                            <span class="badge {% if ibkr_connected %}bg-success{% else %}bg-danger{% endif %} p-2">
+                                {{ 'Yes' if ibkr_connected else 'No' }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Scheduler Health Card -->
+            <div class="col-md-6">
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                        <h6 class="m-0 font-weight-bold text-primary">
+                            <i class="fas fa-heartbeat"></i> Scheduler Health
+                        </h6>
+                        <button id="refresh-health" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-sync"></i> Refresh
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-2">
+                                <strong><i class="fas fa-check-circle"></i> Last Success:</strong>
+                                <div id="last-success">{{ health_status.last_success or 'Never' }}</div>
+                            </div>
+                            <div class="col-md-6 mb-2">
+                                <strong><i class="fas fa-times-circle"></i> Last Failure:</strong>
+                                <div id="last-failure">{{ health_status.last_failure or 'Never' }}</div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4 mb-2">
+                                <strong><i class="fas fa-exclamation-triangle"></i> Failure Count:</strong>
+                                <div id="failure-count">{{ health_status.failure_count }}</div>
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <strong><i class="fas fa-tasks"></i> Total Executions:</strong>
+                                <div id="total-executions">{{ health_status.total_executions }}</div>
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <strong><i class="fas fa-clock"></i> Avg. Time:</strong>
+                                <div id="avg-execution-time">{{ "%.2f"|format(health_status.average_execution_time) }} sec</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Scheduled Jobs Card -->
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-tasks"></i> Scheduled Jobs
+                </h6>
+                <a href="{{ url_for('scheduler.job_history') }}" class="btn btn-info btn-sm">
+                    <i class="fas fa-history"></i> View Job History
+                </a>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover" id="scheduledJobsTable" width="100%" cellspacing="0">
+                        <thead class="thead-dark">
+                            <tr>
+                                <th>Job ID</th>
+                                <th>Status</th>
+                                <th>Next Run Time</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for job_id, job_details in scheduler_jobs.items() %}
+                            <tr>
+                                <td>{{ job_id }}</td>
+                                <td>
+                                    {% if job_statuses.get(job_id) == 'active' %}
+                                        <span class="status-indicator status-active">Active</span>
+                                    {% elif job_statuses.get(job_id) == 'paused' %}
+                                        <span class="status-indicator status-paused">Paused</span>
+                                    {% else %}
+                                        <span class="status-indicator status-unknown">Unknown</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if job_id in next_run_times %}
+                                        {{ next_run_times[job_id] }}
+                                    {% else %}
+                                        <span class="text-muted">Not scheduled</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    <div class="btn-group" role="group">
+                                        <button class="btn btn-sm btn-primary run-job" data-job-id="{{ job_id }}">
+                                            <i class="fas fa-play-circle"></i> Run Now
+                                        </button>
+                                        
+                                        {% if job_statuses.get(job_id) == 'active' %}
+                                            <button class="btn btn-sm btn-warning pause-job" data-job-id="{{ job_id }}">
+                                                <i class="fas fa-pause"></i> Pause
+                                            </button>
+                                        {% else %}
+                                            <button class="btn btn-sm btn-success resume-job" data-job-id="{{ job_id }}">
+                                                <i class="fas fa-play"></i> Resume
+                                            </button>
+                                        {% endif %}
+                                        
+                                        <a href="{{ url_for('scheduler.job_detail_history', job_id=job_id) }}" class="btn btn-sm btn-info">
+                                            <i class="fas fa-history"></i> History
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- IBKR Authentication Status Card -->
+        <div class="card shadow">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-key"></i> IBKR Authentication Status
+                </h6>
+            </div>
+            <div class="card-body">
+                <pre class="bg-light p-3 rounded">{{ auth_status | tojson(indent=2) }}</pre>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CSS for status indicators -->
+<style>
+    /* Status indicator styles */
+    .status-indicator {
+        display: inline-flex;
+        align-items: center;
+        font-weight: 500;
+    }
+    
+    .status-indicator::before {
+        content: '';
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        margin-right: 6px;
+    }
+    
+    .status-active::before {
+        background-color: #28a745;
+        box-shadow: 0 0 5px #28a745;
+        animation: pulse-green 2s infinite;
+    }
+    
+    .status-paused::before {
+        background-color: #ffc107;
+    }
+    
+    .status-unknown::before {
+        background-color: #6c757d;
+    }
+    
+    @keyframes pulse-green {
+        0% {
+            box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7);
+        }
+        70% {
+            box-shadow: 0 0 0 5px rgba(40, 167, 69, 0);
+        }
+        100% {
+            box-shadow: 0 0 0 0 rgba(40, 167, 69, 0);
+        }
+    }
+</style>
+
+<!-- Add DataTables for sorting and filtering -->
+<script>
+    $(document).ready(function() {
+        $('#scheduledJobsTable').DataTable({
+            "pageLength": 25,
+            "language": {
+                "emptyTable": "No scheduled jobs found"
+            },
+            "responsive": true
+        });
+    });
+</script>
+
+<!-- Scheduler control scripts -->
+<script>
+    let autoRefreshInterval;
+
+    function startAutoRefresh() {
+        autoRefreshInterval = setInterval(() => {
+            fetch('/scheduler/debug-health')
+                .then(response => response.json())
+                .then(data => {
+                    // Update health metrics display
+                    document.getElementById('last-success').textContent = data.health_metrics.last_success || 'Never';
+                    document.getElementById('last-failure').textContent = data.health_metrics.last_failure || 'Never';
+                    document.getElementById('failure-count').textContent = data.health_metrics.failure_count;
+                    document.getElementById('total-executions').textContent = data.health_metrics.total_executions;
+                    document.getElementById('avg-execution-time').textContent = data.health_metrics.average_execution_time.toFixed(2) + ' sec';
+                })
+                .catch(error => {
+                    console.error('Error refreshing dashboard:', error);
+                });
+        }, 60000); // Refresh every minute
+    }
+
+    // Start auto-refresh when page loads
+    startAutoRefresh();
+
+    // Stop auto-refresh when page is hidden
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') {
+            clearInterval(autoRefreshInterval);
+        } else {
+            startAutoRefresh();
+        }
+    });
+
+    // JavaScript to handle job actions
+    document.addEventListener('DOMContentLoaded', function() {
+        // Run job
+        document.querySelectorAll('.run-job').forEach(button => {
+            button.addEventListener('click', function() {
+                const jobId = this.getAttribute('data-job-id');
+                fetch(`/scheduler/job/${jobId}/run`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        alert(data.error);
+                    } else {
+                        alert(data.message);
+                        // No need to reload for run action
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while running the job.');
+                });
+            });
+        });
+        
+        // Pause job
+        document.querySelectorAll('.pause-job').forEach(button => {
+            button.addEventListener('click', function() {
+                const jobId = this.getAttribute('data-job-id');
+                const row = this.closest('tr');
+                
+                fetch(`/scheduler/job/${jobId}/pause`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        alert(data.error);
+                    } else {
+                        alert(data.message);
+                        
+                        // Update the status indicator
+                        const statusCell = row.querySelector('td:nth-child(2)');
+                        statusCell.innerHTML = '<span class="status-indicator status-paused">Paused</span>';
+                        
+                        // Update the buttons
+                        const actionsCell = row.querySelector('td:nth-child(4)');
+                        const pauseButton = actionsCell.querySelector('.pause-job');
+                        
+                        // Replace pause button with resume button
+                        const resumeButton = document.createElement('button');
+                        resumeButton.className = 'btn btn-sm btn-success resume-job';
+                        resumeButton.setAttribute('data-job-id', jobId);
+                        resumeButton.innerHTML = '<i class="fas fa-play"></i> Resume';
+                        actionsCell.replaceChild(resumeButton, pauseButton);
+                        
+                        // Add event listener to the new resume button
+                        addResumeEventListener(resumeButton);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while pausing the job.');
+                });
+            });
+        });
+        
+        // Function to add event listener to resume buttons
+        function addResumeEventListener(button) {
+            button.addEventListener('click', function() {
+                const jobId = this.getAttribute('data-job-id');
+                const row = this.closest('tr');
+                
+                fetch(`/scheduler/job/${jobId}/resume`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        alert(data.error);
+                    } else {
+                        alert(data.message);
+                        
+                        // Update the status indicator
+                        const statusCell = row.querySelector('td:nth-child(2)');
+                        statusCell.innerHTML = '<span class="status-indicator status-active">Active</span>';
+                        
+                        // Update the buttons
+                        const actionsCell = row.querySelector('td:nth-child(4)');
+                        const resumeButton = actionsCell.querySelector('.resume-job');
+                        
+                                                // Replace resume button with pause button
+                                                const pauseButton = document.createElement('button');
+                        pauseButton.className = 'btn btn-sm btn-warning pause-job';
+                        pauseButton.setAttribute('data-job-id', jobId);
+                        pauseButton.innerHTML = '<i class="fas fa-pause"></i> Pause';
+                        actionsCell.querySelector('.btn-group').replaceChild(pauseButton, resumeButton);
+                        
+                        // Add event listener to the new pause button
+                        addPauseEventListener(pauseButton);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while resuming the job.');
+                });
+            });
+        }
+        
+        // Function to add event listener to pause buttons
+        function addPauseEventListener(button) {
+            button.addEventListener('click', function() {
+                const jobId = this.getAttribute('data-job-id');
+                const row = this.closest('tr');
+                
+                fetch(`/scheduler/job/${jobId}/pause`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        alert(data.error);
+                    } else {
+                        alert(data.message);
+                        
+                        // Update the status indicator
+                        const statusCell = row.querySelector('td:nth-child(2)');
+                        statusCell.innerHTML = '<span class="status-indicator status-paused">Paused</span>';
+                        
+                        // Update the buttons
+                        const actionsCell = row.querySelector('td:nth-child(4)');
+                        const pauseButton = actionsCell.querySelector('.pause-job');
+                        
+                        // Replace pause button with resume button
+                        const resumeButton = document.createElement('button');
+                        resumeButton.className = 'btn btn-sm btn-success resume-job';
+                        resumeButton.setAttribute('data-job-id', jobId);
+                        resumeButton.innerHTML = '<i class="fas fa-play"></i> Resume';
+                        actionsCell.querySelector('.btn-group').replaceChild(resumeButton, pauseButton);
+                        
+                        // Add event listener to the new resume button
+                        addResumeEventListener(resumeButton);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while pausing the job.');
+                });
+            });
+        }
+        
+        // Add event listeners to initial resume buttons
+        document.querySelectorAll('.resume-job').forEach(button => {
+            addResumeEventListener(button);
+        });
+        
+        // Start scheduler
+        document.getElementById('start-scheduler').addEventListener('click', function() {
+            fetch('/scheduler/start', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message || data.error);
+                if (!data.error) {
+                    window.location.reload();
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while starting the scheduler.');
+            });
+        });
+        
+        // Stop scheduler
+        document.getElementById('stop-scheduler').addEventListener('click', function() {
+            fetch('/scheduler/stop', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message || data.error);
+                if (!data.error) {
+                    window.location.reload();
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while stopping the scheduler.');
+            });
+        });
+
+        // Complete Reset scheduler
+        document.getElementById('complete-reset-scheduler').addEventListener('click', function() {
+            if (confirm('Are you sure you want to completely reset the scheduler? This will stop all running jobs and restart the scheduler.')) {
+                fetch('/scheduler-complete-reset', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message || data.error);
+                    if (!data.error) {
+                        window.location.reload();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while resetting the scheduler.');
+                });
+            }
+        });
+
+        // Refresh health metrics
+        document.getElementById('refresh-health').addEventListener('click', function() {
+            fetch('/scheduler/debug-health')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('last-success').textContent = data.health_metrics.last_success || 'Never';
+                    document.getElementById('last-failure').textContent = data.health_metrics.last_failure || 'Never';
+                    document.getElementById('failure-count').textContent = data.health_metrics.failure_count;
+                    document.getElementById('total-executions').textContent = data.health_metrics.total_executions;
+                    document.getElementById('avg-execution-time').textContent = data.health_metrics.average_execution_time.toFixed(2) + ' sec';
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while refreshing health metrics.');
+                });
+        });
+    });
+</script>
+
+{% endblock %}

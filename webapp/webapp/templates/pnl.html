@@ -1,0 +1,80 @@
+{% extends "layout.html" %}
+
+{% block content %}
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+    {% for category, message in messages %}
+    <div class="alert alert-{{ category }}">{{ message }}</div>
+    {% endfor %}
+{% endif %}
+{% endwith %}
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+        <h6 class="m-0 font-weight-bold text-primary">
+            <i class="fas fa-money-bill-wave"></i> Profit and Loss Summary
+        </h6>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive mb-4">
+            <table class="table table-bordered table-hover" id="pnlTable" width="100%" cellspacing="0">
+                <tbody>
+                    <tr>
+                        <th width="40%">
+                            <i class="fas fa-money-bill-wave"></i> Daily Profit and Loss value (dpl)
+                        </th>
+                        <td class="{% if pnl['dpl'] >= 0 %}text-success{% else %}text-danger{% endif %}">
+                            <strong>HKD {{ "{:,.2f}".format(pnl['dpl']) }}</strong>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>
+                            <i class="fas fa-balance-scale"></i> Unrealized Profit and Loss for the day (upl)
+                        </th>
+                        <td class="{% if pnl['upl'] >= 0 %}text-success{% else %}text-danger{% endif %}">
+                            <strong>HKD {{ "{:,.2f}".format(pnl['upl']) }}</strong>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>
+                            <i class="fas fa-wallet"></i> Unrounded Excess Liquidty in the account (uel)
+                        </th>
+                        <td class="{% if pnl['uel'] >= 0 %}text-success{% else %}text-danger{% endif %}">
+                            <strong>HKD {{ "{:,.2f}".format(pnl['uel']) }}</strong>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>
+                            <i class="fas fa-chart-pie"></i> Market value of held stocks in the account (mv)
+                        </th>
+                        <td>
+                            <strong>HKD {{ "{:,.2f}".format(pnl['mv']) }}</strong>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>
+                            <i class="fas fa-coins"></i> Net Liquidity in the account (nl)
+                        </th>
+                        <td class="{% if pnl['nl'] >= 0 %}text-success{% else %}text-danger{% endif %}">
+                            <strong>HKD {{ "{:,.2f}".format(pnl['nl']) }}</strong>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card shadow">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-chart-area"></i> PnL Visualization
+                </h6>
+            </div>
+            <div class="card-body">
+                {{ graph_html|safe }}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

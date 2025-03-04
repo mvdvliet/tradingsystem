@@ -1,0 +1,52 @@
+{% extends "layout.html" %}
+
+{% block title %}Bulk Import Symbols{% endblock %}
+
+{% block content %}
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+    {% for category, message in messages %}
+    <div class="alert alert-{{ category }}">{{ message }}</div>
+    {% endfor %}
+{% endif %}
+{% endwith %}
+
+<div class="container-fluid">
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-file-import"></i> Bulk Import Symbols
+            </h6>
+        </div>
+        <div class="card-body">
+            <p class="mb-3">
+                Import multiple symbols at once in simulation mode. Enter one symbol per line in the format: <code>SYMBOL,CONID</code>
+            </p>
+            
+            <form action="{{ url_for('trading.bulk_import') }}" method="post">
+                <div class="form-group">
+                    <label for="symbols">Symbols (one per line)</label>
+                    <textarea class="form-control" id="symbols" name="symbols" rows="10" 
+                              placeholder="AAPL,265598
+MSFT,272093
+GOOGL,208813"></textarea>
+                </div>
+                
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> All imported symbols will be added in <strong>simulation mode</strong> (signals will be recorded but no orders will be executed).
+                </div>
+                
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-file-import"></i> Import Symbols
+                    </button>
+                    <a href="{{ url_for('trading.trading_universe') }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Back to Universe
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

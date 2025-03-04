@@ -1,0 +1,182 @@
+{% extends "layout.html" %}
+
+{% block content %}
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+    {% for category, message in messages %}
+    <div class="alert alert-{{ category }}">{{ message }}</div>
+    {% endfor %}
+{% endif %}
+{% endwith %}
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+        <h6 class="m-0 font-weight-bold text-primary">
+            <i class="fas fa-search"></i> Market Scanner
+        </h6>
+    </div>
+    <div class="card-body">
+        <form id="scan" action="" method="get" class="mb-4">
+            <div class="row">
+                <div class="col-md-2 mb-3">
+                    <label for="instrument" class="form-label">Instrument</label>
+                    <select id="instrument" name="instrument" class="form-select form-control">
+                        {% for key in scanner_map %}
+                            <option value="{{ key }}" {% if key == request.args.get('instrument') %}selected="selected"{% endif %}>
+                                {{ scanner_map[key]['display_name'] }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2 mb-3">
+                    <label for="location" class="form-label">Location</label>
+                    <select id="location" name="location" class="form-select form-control">
+                        <!-- Populated by JavaScript -->
+                    </select>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="filter" class="form-label">Filter</label>
+                    <select id="filter" name="filter" class="form-select form-control">
+                        <!-- Populated by JavaScript -->
+                    </select>
+                </div>
+                <div class="col-md-2 mb-3">
+                    <label for="filter_value" class="form-label">Value</label>
+                    <input id="filter_value" name="filter_value" class="form-control" value="{{ request.args.get('filter_value', '') }}" />
+                </div>
+                <div class="col-md-2 mb-3">
+                    <label for="sort" class="form-label">Sort By</label>
+                    <select id="sort" name="sort" class="form-select form-control">
+                        <!-- Populated by JavaScript -->
+                    </select>
+                </div>
+                <div class="col-md-1 mb-3 d-flex align-items-end">
+                    <input type="hidden" name="submitted" value="submitted" />
+                    <button type="submit" id="submit_scan" class="btn btn-primary w-100">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </div>
+        </form>
+
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-list"></i> Scan Results
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover" id="scanResultsTable" width="100%" cellspacing="0">
+                        <tbody>
+                            {% for contract in scan_results['contracts'] %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex flex-column">
+                                        <h5 class="mb-1">
+                                            <a href="/contract/{{ contract['con_id'] }}/3m/1h">
+                                                <strong>{{ contract['symbol'] }}</strong>
+                                            </a>
+                                        </h5>
+                                        <p class="text-muted mb-3">{{ contract['company_name'] }}</p>
+                                        
+                                        <div class="chart-container">
+                                            <img class="img-fluid" src="https://charts2-node.finviz.com/chart.ashx?cs=l&t={{ contract['symbol'] }}&tf=d&s=linear&ct=candle_stick&tm=d&o[0][ot]=sma&o[0][op]=50&o[0][oc]=FF8F33C6&o[1][ot]=sma&o[1][op]=200&o[1][oc]=DCB3326D&o[2][ot]=sma&o[2][op]=20&o[2][oc]=DC32B363&o[3][ot]=patterns&o[3][op]=&o[3][oc]=000" alt="{{ contract['symbol'] }} chart" />
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td class="text-center">
+                                    <div class="alert alert-info m-0">
+                                        <i class="fas fa-info-circle"></i> No scan results found. Try adjusting your filter criteria.
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+const scannerMap = {{ scanner_map|safe }};
+const filterMap = {{ filter_map|safe }}
+const instrument = document.getElementById('instrument');
+const instrumentLocation = document.getElementById('location');
+const filter = document.getElementById('filter');
+const sort = document.getElementById('sort');
+
+const queryString = window.location.search;
+const urlParams = new URLSearchParams(queryString);
+
+filter.addEventListener('change', (event) => {
+    const key = event.target.value;
+});
+
+instrument.addEventListener('change', (event) => {
+    const key = event.target.value;
+    const locations = scannerMap[key]['locations'];
+    const filters = scannerMap[key]['filters'];
+    const sorts = scannerMap[key]['sorts'];
+    instrumentLocation.innerHTML = '';
+    filter.innerHTML = '';
+    sort.innerHTML = '';
+
+    sorts.map((item) => {
+        const option = document.createElement("option");
+        option.value = item.code;
+        option.text = item.name
+        if (urlParams.get('sort') == option.value) {
+            option.selected = true;
+        }
+
+        sort.appendChild(option);
+    });
+
+    locations.map((item) => {
+        const option = document.createElement("option");
+        option.value = item.type;
+        option.text = item.display_name
+        if (urlParams.get('location') == option.value) {
+            option.selected = true;
+        }
+        instrumentLocation.appendChild(option);
+    });
+
+    filters.map((item) => {
+        Object.keys(filterMap).forEach(key => {
+            if (key.startsWith(item)) {
+                const option = document.createElement("option");
+                option.value = filterMap[key].code;
+                option.text = filterMap[key].display_name
+                if (urlParams.get('filter') == option.value) {
+                    option.selected = true;
+                }
+                filter.appendChild(option);
+            }
+        });
+    })
+
+    if (!urlParams.get('filter')) {
+        filter.value = 'priceAbove';
+    }
+
+    if (!urlParams.get('filter_value')) {
+        filter_value.value = 20;
+    }
+});
+
+instrument.dispatchEvent(new Event('change'));
+
+if (!urlParams.get('submitted')) {
+    const formElement = document.getElementById('scan');
+    // Submit the form programmatically
+    formElement.submit();
+}
+</script>
+{% endblock %}

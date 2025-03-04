@@ -1,0 +1,46 @@
+# networks:
+#   vpn:
+#     name: vpn
+#     driver: bridge
+#     external: true
+
+services:
+  ibgw:
+    build: .
+    image: ibgw
+    container_name: ibgw
+    # networks: [vpn]
+    ports:
+      - 5055:5055
+    # network_mode: container:gluetun
+    network_mode: "host"
+    environment:
+      IBKR_ACCOUNT_ID: "U15289200"
+    volumes:
+      - logs:/var/log/ibgwweb
+    restart: unless-stopped
+
+  firefox:
+    image: lscr.io/linuxserver/firefox:latest
+    container_name: firefox
+    security_opt:
+      - seccomp:unconfined #optional
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Asia/Hong_Kong
+      # - FIREFOX_CLI=https://www.linuxserver.io/ #optional
+    volumes:
+      - firefox:/config
+    network_mode: "host"
+    # networks: [vpn]
+    ports:
+      - 3000:3000
+      - 3001:3001
+    shm_size: "1gb"
+    restart: unless-stopped
+    # network_mode: container:gluetun
+
+volumes:
+  logs:
+  firefox:

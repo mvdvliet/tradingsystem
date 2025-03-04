@@ -1,0 +1,112 @@
+{% extends "layout.html" %}
+
+{% block content %}
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+    {% for category, message in messages %}
+    <div class="alert alert-{{ category }}">{{ message }}</div>
+    {% endfor %}
+{% endif %}
+{% endwith %}
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+        <h6 class="m-0 font-weight-bold text-primary">
+            <i class="fas fa-briefcase"></i> Portfolio Positions
+        </h6>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover" id="portfolioTable" width="100%" cellspacing="0">
+                <thead class="thead-dark">
+                    <tr>
+                        <th>Ticker</th>
+                        <th>Name</th>
+                        <th>Quantity</th>
+                        <th>Average Cost</th>
+                        <th>Position Value</th>
+                        <th>Current Price</th>
+                        <th>Currency</th>
+                        <th>Current Value</th>
+                        <th>Profit / Loss</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in positions %}
+                    <tr>
+                        <td>
+                            <strong>
+                                <a href="/contract/{{ item.conid | default('N/A') }}/3m/1h">{{ item.contractDesc }}</a>
+                            </strong>
+                        </td>
+                        <td>{{ item['name'] }}</td>
+                        <td>{{ item['position'] }}</td>
+                        <td>{{ "{:,.2f}".format(item['avgCost']) }}</td>
+                        <td>{{ "{:,.2f}".format(item['position_value']) }}</td>
+                        <td>{{ "{:,.2f}".format(item['mktPrice']) }}</td>
+                        <td><span class="badge bg-secondary">{{ item['currency'] }}</span></td>
+                        <td>{{ "{:,.2f}".format(item['mktValue']) }}</td>
+                        <td>
+                            {% if item['unrealizedPnl'] is number %}
+                                <span class="badge {% if item['unrealizedPnl'] >= 0 %}bg-success{% else %}bg-danger{% endif %} p-2">
+                                    {{ "{:,.2f}".format(item['unrealizedPnl']) }}
+                                </span>
+                            {% else %}
+                                <span>{{ item['unrealizedPnl'] }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if item['position'] != 0 %}
+                                <form method="POST" action="{{ url_for('portfolio.close_position', contract_id=item.conid) }}">
+                                    <input type="hidden" name="close_position" value="true">
+                                    <button type="submit" class="btn btn-danger btn-sm" 
+                                            onclick="return confirm('Are you sure you want to close this position?')">
+                                        <i class="fas fa-times"></i> Close
+                                    </button>
+                                </form>
+                            {% else %}
+                                <button class="btn btn-outline-secondary btn-sm" disabled>
+                                    <i class="fas fa-ban"></i> No Position
+                                </button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr class="table-dark">
+                        <td colspan="4"><strong>TOTAL</strong></td>
+                        <td><strong>{{ "{:,.2f}".format(total_position_value) }}</strong></td>
+                        <td colspan="2"></td>
+                        <td><strong>{{ "{:,.2f}".format(total_market_value) }}</strong></td>
+                        <td colspan="2">
+                            <span class="badge {% if total_unrealized_pnl >= 0 %}bg-success{% else %}bg-danger{% endif %} p-2">
+                                <strong>{{ "{:,.2f}".format(total_unrealized_pnl) }}</strong>
+                                
+                                ({{ "{:.2f}".format(total_pnl_percent) }}%)
+                            </span>
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Add DataTables for sorting and filtering -->
+<script>
+    $(document).ready(function() {
+        $('#portfolioTable').DataTable({
+            "pageLength": 25,
+            "language": {
+                "emptyTable": "No positions found"
+            },
+            "responsive": true,
+            "order": [[ 8, "desc" ]]  // Sort by P/L column descending
+        });
+    });
+</script>
+
+{% endblock %}

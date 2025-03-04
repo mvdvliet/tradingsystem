@@ -1,0 +1,396 @@
+{% extends "layout.html" %}
+
+{% block title %}Signal Details - {{ signal.symbol }} {{ signal.signal_type }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('signals.signals_dashboard') }}">Signals Dashboard</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Signal Details</li>
+                </ol>
+            </nav>
+            
+            <div class="card shadow mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-chart-line me-2"></i> 
+                        {% if signal.signal_type == 'BUY' %}
+                            <span class="text-success">BUY</span>
+                        {% else %}
+                            <span class="text-danger">SELL</span>
+                        {% endif %}
+                        Signal for {{ signal.symbol }}
+                    </h5>
+                    <div>
+                        <a href="{{ url_for('signals.signals_dashboard') }}" class="btn btn-sm btn-primary">
+                            <i class="fas fa-arrow-left"></i> Back to Dashboard
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card mb-4">
+                                <div class="card-header py-3">
+                                    <h6 class="m-0 font-weight-bold text-primary">
+                                        <i class="fas fa-info-circle me-2"></i> Signal Information
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered">
+                                            <tbody>
+                                                <tr>
+                                                    <th>Symbol</th>
+                                                    <td>{{ signal.symbol }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>ConID</th>
+                                                    <td>{{ signal.conid }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Signal Type</th>
+                                                    <td>
+                                                        {% if signal.signal_type == 'BUY' %}
+                                                            <span class="badge bg-success">BUY</span>
+                                                        {% else %}
+                                                            <span class="badge bg-danger">SELL</span>
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Signal Strength</th>
+                                                    <td>{{ "%.2f"|format(signal.signal_strength) }}%</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Detection Time</th>
+                                                    <td>{{ detection_time_formatted }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Current Price</th>
+                                                    <td>${{ "%.2f"|format(signal.current_price) }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Acted Upon</th>
+                                                    <td>
+                                                        {% if signal.acted_upon %}
+                                                            <span class="badge bg-success"><i class="fas fa-check"></i> Yes</span>
+                                                        {% else %}
+                                                            <span class="badge bg-secondary"><i class="fas fa-times"></i> No</span>
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="card mb-4">
+                                <div class="card-header py-3">
+                                    <h6 class="m-0 font-weight-bold text-primary">
+                                        <i class="fas fa-calculator me-2"></i> Technical Indicators
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered">
+                                            <tbody>
+                                                <tr>
+                                                    <th>Short MA (5)</th>
+                                                    <td>${{ "%.2f"|format(signal.short_ma) }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Long MA (20)</th>
+                                                    <td>${{ "%.2f"|format(signal.long_ma) }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>MA Difference</th>
+                                                    <td>${{ "%.4f"|format(signal.ma_diff) }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Previous MA Difference</th>
+                                                    <td>${{ "%.4f"|format(signal.prev_ma_diff) }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>MA Crossover Strength</th>
+                                                    <td>${{ "%.4f"|format(signal_metrics.ma_crossover_strength) }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Price to Short MA Ratio</th>
+                                                    <td>{{ "%.4f"|format(signal_metrics.price_to_short_ma_ratio) }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Price to Long MA Ratio</th>
+                                                    <td>{{ "%.4f"|format(signal_metrics.price_to_long_ma_ratio) }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>MA Ratio (Short/Long)</th>
+                                                    <td>{{ "%.4f"|format(signal_metrics.ma_ratio) }}</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            {% if related_strategy %}
+                            <div class="card mb-4">
+                                <div class="card-header py-3">
+                                    <h6 class="m-0 font-weight-bold text-primary">
+                                        <i class="fas fa-chess me-2"></i> Related Strategy
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered">
+                                            <tbody>
+                                                <tr>
+                                                    <th>Strategy Name</th>
+                                                    <td>{{ related_strategy.name }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Status</th>
+                                                    <td>
+                                                        {% if related_strategy.status == 'ACTIVE' %}
+                                                            <span class="badge bg-success">ACTIVE</span>
+                                                        {% else %}
+                                                            <span class="badge bg-secondary">CLOSED</span>
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Entry Time</th>
+                                                    <td>{{ related_strategy.entry_time.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                                                </tr>
+                                                {% if related_strategy.exit_time %}
+                                                <tr>
+                                                    <th>Exit Time</th>
+                                                    <td>{{ related_strategy.exit_time.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                                                </tr>
+                                                {% endif %}
+                                                <tr>
+                                                    <th>Position Size</th>
+                                                    <td>{{ related_strategy.position_size }}</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6">
+                            {% if price_history %}
+                            <div class="card mb-4">
+                                <div class="card-header py-3">
+                                    <h6 class="m-0 font-weight-bold text-primary">
+                                        <i class="fas fa-chart-area me-2"></i> Price Chart
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="chart-area">
+                                        <canvas id="priceChart"></canvas>
+                                    </div>
+                                    <hr>
+                                    <small class="text-muted">
+                                        Chart shows price action around the signal time. The vertical line indicates when the signal was detected.
+                                    </small>
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            {% if related_signals %}
+                            <div class="card mb-4">
+                                <div class="card-header py-3">
+                                    <h6 class="m-0 font-weight-bold text-primary">
+                                        <i class="fas fa-history me-2"></i> Related Signals
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>Type</th>
+                                                    <th>Strength</th>
+                                                    <th>Time</th>
+                                                    <th>Price</th>
+                                                    <th>Acted</th>
+                                                    <th>View</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for rel_signal in related_signals %}
+                                                <tr>
+                                                    <td>
+                                                        {% if rel_signal.signal_type == 'BUY' %}
+                                                            <span class="badge bg-success">BUY</span>
+                                                        {% else %}
+                                                            <span class="badge bg-danger">SELL</span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>{{ "%.2f"|format(rel_signal.signal_strength) }}%</td>
+                                                    <td>{{ rel_signal.detection_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                                                    <td>${{ "%.2f"|format(rel_signal.current_price) }}</td>
+                                                    <td>
+                                                        {% if rel_signal.acted_upon %}
+                                                            <span class="badge bg-success"><i class="fas fa-check"></i></span>
+                                                        {% else %}
+                                                            <span class="badge bg-secondary"><i class="fas fa-times"></i></span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>
+                                                        <a href="{{ url_for('signals.signal_detail', signal_id=rel_signal.id) }}" class="btn btn-sm btn-primary">
+                                                            <i class="fas fa-search"></i>
+                                                        </a>
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if price_history %}
+<!-- Chart.js for price chart -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Prepare data for chart
+        const priceData = {{ price_history|tojson }};
+        const signalTime = new Date("{{ signal.detection_time.isoformat() }}");
+        
+        // Extract data for chart
+        const labels = priceData.map(item => new Date(item.Date));
+        const prices = priceData.map(item => item.Close);
+        const shortMA = priceData.map(item => item.SMA_short);
+        const longMA = priceData.map(item => item.SMA_long);
+        
+        // Find the index closest to the signal time
+        let signalIndex = 0;
+        let minDiff = Infinity;
+        for (let i = 0; i < labels.length; i++) {
+            const diff = Math.abs(labels[i] - signalTime);
+            if (diff < minDiff) {
+                minDiff = diff;
+                signalIndex = i;
+            }
+        }
+        
+        // Create chart
+const ctx = document.getElementById('priceChart').getContext('2d');
+const chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: labels,
+        datasets: [
+            {
+                label: 'Price',
+                data: prices,
+                borderColor: 'rgba(78, 115, 223, 1)',
+                backgroundColor: 'rgba(78, 115, 223, 0.05)',
+                pointRadius: 3,
+                pointBackgroundColor: 'rgba(78, 115, 223, 1)',
+                pointBorderColor: 'rgba(78, 115, 223, 1)',
+                pointHoverRadius: 5,
+                pointHoverBackgroundColor: 'rgba(78, 115, 223, 1)',
+                pointHoverBorderColor: 'rgba(78, 115, 223, 1)',
+                pointHitRadius: 10,
+                pointBorderWidth: 2,
+                fill: false
+            },
+            {
+                label: 'Short MA (5)',
+                data: shortMA,
+                borderColor: 'rgba(28, 200, 138, 1)',
+                backgroundColor: 'rgba(28, 200, 138, 0)',
+                pointRadius: 0,
+                borderWidth: 2,
+                fill: false
+            },
+            {
+                label: 'Long MA (20)',
+                data: longMA,
+                borderColor: 'rgba(246, 194, 62, 1)',
+                backgroundColor: 'rgba(246, 194, 62, 0)',
+                pointRadius: 0,
+                borderWidth: 2,
+                fill: false
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            x: {
+                type: 'time',
+                time: {
+                    unit: 'day',
+                    displayFormats: {
+                        day: 'MMM d'
+                    }
+                },
+                title: {
+                    display: true,
+                    text: 'Date'
+                }
+            },
+            y: {
+                title: {
+                    display: true,
+                    text: 'Price ($)'
+                }
+            }
+        },
+        plugins: {
+            tooltip: {
+                mode: 'index',
+                intersect: false
+            },
+            annotation: {
+                annotations: {
+                    signalLine: {
+                        type: 'line',
+                        xMin: signalTime,
+                        xMax: signalTime,
+                        borderColor: signal.signal_type === 'BUY' ? 'rgba(40, 167, 69, 0.8)' : 'rgba(220, 53, 69, 0.8)',
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        label: {
+                            content: signal.signal_type + ' SIGNAL',
+                            enabled: true,
+                            position: 'top',
+                            backgroundColor: signal.signal_type === 'BUY' ? 'rgba(40, 167, 69, 0.8)' : 'rgba(220, 53, 69, 0.8)'
+                        }
+                    }
+                }
+            },
+            legend: {
+                position: 'top'
+            },
+            title: {
+                display: true,
+                text: `${signal.symbol} Price Chart with Moving Averages`
+            }
+        }
+    }
+});
+</script>
+{% endif %}
+{% endblock %}
