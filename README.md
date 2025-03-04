@@ -139,7 +139,10 @@ The web application is the main interface for the trading system, providing acce
 webapp/
 ├── docker-compose.yml  # Docker Compose configuration for webapp and database
 ├── Dockerfile          # Docker build instructions for the webapp
-└── start.sh            # Startup script for the Flask application
+├── start.sh            # Startup script for the Flask application
+└── webapp              # Code base for the Flask application
+    ├── blueprints      # Python code according to blueprint design pattern
+    └── templates       # HTML templates to render the web pages
 ```
 
 ### Configuration
@@ -273,5 +276,6 @@ The system is built using a Flask backend with SQLAlchemy ORM for database opera
 
 ## Disclaimer
 
-This system is based on the work from Part Time Larry.
+This system is based on the great work from Part Time Larry.
+
 https://github.com/hackingthemarkets/interactive-brokers-web-api
